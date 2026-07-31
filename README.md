@@ -1,8 +1,31 @@
 # Mini AI Workflow Builder
 
-A local web app for configuring AI workflows from a **system prompt**, **tools**, and a **step / decision sequence**, then chatting with them. Workflows are saved in SQLite and every run keeps a full execution trace.
+A containerized local web app for configuring AI workflows from a system prompt, tools, and a step / decision sequence, with the goal of chatting with them.
 
-Built with Next.js 16, Prisma 7, OpenAI / Anthropic / DeepSeek, and Tailwind CSS.
+Built with Next.js 16, Prisma 7, OpenAI / Anthropic / DeepSeek API, and Tailwind CSS.
+
+## Prerequisites
+
+- **Docker** with Compose v2 — [Docker Desktop](https://docs.docker.com/get-docker/) (Mac / Windows) or [Docker Engine](https://docs.docker.com/engine/install/) (Linux)
+
+## Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Oraczen.git
+cd Oraczen
+```
+
+### 2. Build & launch
+
+```bash
+docker compose up --build
+```
+
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+
+On first visit, the app walks you through a setup screen where you can paste your API key (OpenAI, Anthropic, or DeepSeek), which will then be written into the .env file. Keys can also be changed later under **Settings**.
 
 ## Features
 
@@ -15,95 +38,12 @@ Built with Next.js 16, Prisma 7, OpenAI / Anthropic / DeepSeek, and Tailwind CSS
 - Chat with streaming replies and traces of LLM calls, tool calls, and branch decisions
 - Persisted execution history and a mock email outbox
 - Three seeded demo workflows (research, math tutor, support triage)
-- Docker Compose setup
 
-## Prerequisites
+### Data persistence
 
-- Node.js 22+ **or** Docker Desktop / Compose v2
-- An API key for at least one provider:
-  - [OpenAI](https://platform.openai.com/api-keys)
-  - [Anthropic](https://console.anthropic.com/settings/keys)
-  - [DeepSeek](https://platform.deepseek.com/api_keys)
+SQLite lives in a Docker named volume (`workflow-sqlite`). Your data survives container restarts. Demo workflows re-seed on every start by default — set `SEED_ON_START=false` in `.env` once you want restarts to leave your data untouched.
 
-## Setup (local)
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Configure environment
-cp .env.example .env
-# Put at least one provider key in .env (or paste it on the welcome screen after start)
-
-# 3. Generate Prisma client, create SQLite DB, seed demos
-npm run setup
-
-# 4. Start the app
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-On first visit, the welcome screen asks for an API key if none is configured yet. Keys can also be managed under **Settings**.
-
-## Setup (Docker)
-
-```bash
-cp .env.example .env
-# set OPENAI_API_KEY, ANTHROPIC_API_KEY, and/or DEEPSEEK_API_KEY
-
-docker compose up --build
-# or: npm run docker:up
-```
-
-App: [http://localhost:3000](http://localhost:3000). SQLite lives in the `workflow-sqlite` volume. Demo workflows re-seed on start by default; set `SEED_ON_START=false` once you want restarts to leave data alone.
-
-```bash
-docker compose down          # stop
-docker compose down -v       # stop and wipe the database volume
-```
-
-### Useful scripts
-
-| Script | What it does |
-| --- | --- |
-| `npm run setup` | `prisma generate` + `db push` + seed |
-| `npm run db:seed` | Re-seed the three demo workflows |
-| `npm run db:reset` | Wipe the database and re-seed |
-| `npm run db:studio` | Open Prisma Studio |
-| `npm run typecheck` | TypeScript check |
-| `npm run build` | Production build |
-| `npm run docker:up` | `docker compose up --build` |
-| `npm run docker:down` | `docker compose down` |
-
-## Quick tour
-
-1. Open **Workflows** — you should see Research Assistant, Math Tutor, and Support Triage.
-2. Click **Edit** on Math Tutor to inspect the two-step pipeline (Solve → Explain).
-3. Click **Chat**, ask `What is 17 * 43?`, and expand the execution trace under the reply.
-4. Try Support Triage with a billing question to see a decision branch and a mock email in **Outbox**.
-5. Open **History** to replay any past run.
-
-## Environment variables
-
-See [`.env.example`](.env.example). The important ones:
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | yes | SQLite path, default `file:./prisma/dev.db` |
-| `OPENAI_API_KEY` | one of the keys | OpenAI (or OpenAI-compatible) access |
-| `ANTHROPIC_API_KEY` | one of the keys | Anthropic access |
-| `DEEPSEEK_API_KEY` | one of the keys | DeepSeek (`deepseek-v4-flash` / `deepseek-v4-pro`) |
-| `OPENAI_BASE_URL` | no | Point the OpenAI adapter at OpenRouter / Groq / Ollama / etc. |
-| `WORKFLOW_MAX_ITERATIONS` | no | Cap on tool loops inside an agent step (default 8) |
-| `WORKFLOW_MAX_STEPS` | no | Cap on steps per run (default 25) |
-| `WORKFLOW_TIMEOUT_MS` | no | Wall-clock budget per run (default 120000) |
-
-## Architecture & design decisions
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) — that is the short write-up requested in the brief.
-
-## Project layout
+## Project Layout
 
 ```
 src/
@@ -118,11 +58,8 @@ src/
 prisma/
   schema.prisma
   seed.ts
+docker/
+  entrypoint.sh         # Container startup (schema push + optional seed)
+Dockerfile              # Multi-stage build
+docker-compose.yml      # Single-command launch
 ```
-
-## Submission checklist
-
-- [ ] Public GitHub repo (do **not** commit `.env` — only `.env.example`)
-- [ ] This README with setup instructions
-- [ ] `.env.example`
-- [ ] [ARCHITECTURE.md](./ARCHITECTURE.md) design write-up

@@ -17,8 +17,6 @@
 /coverage
 
 # ── Environment / Secrets ─────────────────────────────────────
-.env*
-!.env.example
 
 # ── Prisma / SQLite ───────────────────────────────────────────
 /prisma/*.db

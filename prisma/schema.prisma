@@ -1,0 +1,200 @@
+// Prisma 7: the `prisma-client` generator needs an explicit output path and the
+// client requires a driver adapter at construction time (see src/lib/db.ts).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Key/value store for runtime config (API keys chosen on the welcome screen).
+/// Env vars still work as a fallback for Docker / local .env setups.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// A workflow is the full, user-editable configuration of an AI system:
+/// which model runs it, what it is told to be, which tools it may reach for
+/// and which steps it walks through.
+model Workflow {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  systemPrompt  String
+  provider      String  @default("openai")
+  model         String  @default("gpt-4o-mini")
+  temperature   Float   @default(0.7)
+  maxIterations Int     @default(6)
+
+  tools    WorkflowTool[]
+  steps    WorkflowStep[]
+  sessions ChatSession[]
+  runs     Run[]
+  versions WorkflowVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+/// Immutable snapshot of a workflow's configuration at a point in time.
+/// Created on every successful save; restore re-applies a snapshot and first
+/// snapshots the live state so nothing is lost.
+model WorkflowVersion {
+  id         String @id @default(cuid())
+  workflowId String
+  /// Monotonic per-workflow version number, starting at 1.
+  version    Int
+  /// Optional short note (e.g. "Restored from v3").
+  label      String?
+  /// Full JSON snapshot: name, description, systemPrompt, provider, model,
+  /// temperature, maxIterations, tools[], steps[].
+  snapshot   String
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([workflowId, version])
+  @@index([workflowId, createdAt])
+}
+
+/// Per-workflow tool enablement. A row exists for every tool the user has
+/// touched; missing rows fall back to the tool's registry default.
+model WorkflowTool {
+  id         String  @id @default(cuid())
+  workflowId String
+  toolKey    String
+  enabled    Boolean @default(true)
+  /// JSON blob of tool-specific overrides, shape defined by the tool itself.
+  config     String  @default("{}")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, toolKey])
+  @@index([workflowId])
+}
+
+/// One node in the workflow. `key` is a stable slug referenced by templates
+/// ({{steps.<key>.output}}) and by decision branch targets, so it survives
+/// reordering and renaming.
+model WorkflowStep {
+  id          String  @id @default(cuid())
+  workflowId  String
+  key         String
+  /// agent | tool | decision | respond
+  type        String
+  name        String
+  order       Int
+  instruction String  @default("")
+  toolKey     String?
+  /// JSON: { toolKeys?: string[], branches?: Branch[], maxIterations?: number, ... }
+  config      String  @default("{}")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, key])
+  @@index([workflowId, order])
+}
+
+/// A chat thread against one workflow. Threads keep conversation memory
+/// separate from execution traces.
+model ChatSession {
+  id         String @id @default(cuid())
+  workflowId String
+  title      String @default("New chat")
+
+  workflow Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  messages Message[]
+  runs     Run[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId, updatedAt])
+}
+
+model Message {
+  id        String  @id @default(cuid())
+  sessionId String
+  /// user | assistant
+  role      String
+  content   String
+  /// Set on assistant messages so the UI can pull the matching execution trace.
+  runId     String?
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+/// One execution of a workflow, kept even when the chat session is deleted so
+/// the history page stays meaningful.
+model Run {
+  id         String  @id @default(cuid())
+  workflowId String
+  sessionId  String?
+  input      String
+  output     String?
+  /// running | succeeded | failed
+  status     String  @default("running")
+  error      String?
+  provider   String
+  model      String
+  durationMs Int?
+  totalTokens Int?
+
+  workflow Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  session  ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  events   RunEvent[]
+  emails   EmailLog[]
+
+  createdAt DateTime @default(now())
+
+  @@index([workflowId, createdAt])
+  @@index([createdAt])
+}
+
+/// Ordered trace of everything that happened during a run: step boundaries,
+/// LLM calls, tool calls and branch decisions.
+model RunEvent {
+  id         String  @id @default(cuid())
+  runId      String
+  seq        Int
+  /// See RunEventType in src/lib/engine/events.ts
+  type       String
+  stepKey    String?
+  label      String?
+  /// JSON payload, shape depends on `type`.
+  data       String  @default("{}")
+  durationMs Int?
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([runId, seq])
+}
+
+/// The mock email sender writes here instead of sending anything.
+model EmailLog {
+  id      String  @id @default(cuid())
+  to      String
+  subject String
+  body    String
+  runId   String?
+
+  run Run? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

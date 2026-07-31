@@ -1,0 +1,33 @@
+# Dependencies & build artifacts
+node_modules
+.next
+out
+build
+coverage
+dist
+
+# Git / IDE
+.git
+.cursor
+.vscode
+
+# Local env and databases (keys come from compose env_file / -e)
+.env
+.env.*
+!.env.example
+prisma/*.db
+prisma/*.db-*
+prisma/*.db-journal
+prisma/*.db-shm
+prisma/*.db-wal
+
+# Misc
+ai-workflow-builder.pdf
+AGENTS.md
+CLAUDE.md
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.tsbuildinfo
+src/generated

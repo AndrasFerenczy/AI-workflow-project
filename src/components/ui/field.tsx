@@ -121,15 +121,15 @@ export function Switch({
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        "focus-ring relative h-5.5 w-10 shrink-0 rounded-full border transition-colors duration-200",
+        "focus-ring relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors duration-200",
         "disabled:cursor-not-allowed disabled:opacity-40",
         checked ? "border-accent bg-accent" : "border-border-strong bg-surface-raised",
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-          checked ? "translate-x-5" : "translate-x-0.5",
+          "block size-5 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200",
+          checked ? "translate-x-5" : "translate-x-0",
         )}
       />
     </button>

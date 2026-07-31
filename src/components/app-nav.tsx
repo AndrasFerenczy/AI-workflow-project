@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { History, Inbox, Workflow } from "lucide-react";
+import { History, Inbox, Settings, Workflow } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/", label: "Workflows", icon: Workflow, match: (p: string) => p === "/" || p.startsWith("/workflows") },
   { href: "/runs", label: "History", icon: History, match: (p: string) => p.startsWith("/runs") },
   { href: "/outbox", label: "Outbox", icon: Inbox, match: (p: string) => p.startsWith("/outbox") },
+  { href: "/settings", label: "Settings", icon: Settings, match: (p: string) => p.startsWith("/settings") },
 ];
 
 export function AppNav() {

@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      # Persist SQLite on a named volume (not the image's prisma/ folder).
+      DATABASE_URL: file:/data/dev.db
+      # Re-seed demo workflows on every start. Set to "false" once you have
+      # data you want to keep across restarts without the demos being reset.
+      SEED_ON_START: ${SEED_ON_START:-true}
+      NODE_ENV: production
+    volumes:
+      - workflow-sqlite:/data
+    restart: unless-stopped
+
+volumes:
+  workflow-sqlite:

@@ -13,8 +13,8 @@ Built with Next.js 16, Prisma 7, OpenAI / Anthropic / DeepSeek API, and Tailwind
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Oraczen.git
-cd Oraczen
+git clone https://github.com/AndrasFerenczy/AI-workflow-project.git
+cd AI-workflow-project
 ```
 
 ### 2. Build & launch
@@ -25,7 +25,7 @@ docker compose up --build
 
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-On first visit, the app walks you through a setup screen where you can paste your API key (OpenAI, Anthropic, or DeepSeek), which will then be written into the .env file. Keys can also be changed later under **Settings**.
+On first visit, the app walks you through a setup screen where you can paste your API key (OpenAI, Anthropic, or DeepSeek), which will then be written into the .env file. Keys can also be changed later under **Settings**. Since the .env is included in the gitignore file, the credentials won't be pushed if you commit and push the code after modifications.
 
 ## Features
 
